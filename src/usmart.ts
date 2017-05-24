@@ -6,6 +6,17 @@ export interface IAuthInfo {
   keySecret: string;
 }
 
+export interface IQueryEqualPair {
+  key: string;
+  value: string;
+}
+
+export interface IQueryObject {
+  limit?: number;
+  offset?: number;
+  equals?: IQueryEqualPair[];
+}
+
 export class USMART {
   private authInfo: IAuthInfo;
 
@@ -13,8 +24,11 @@ export class USMART {
     this.authInfo = auth;
   }
 
-  public request(organisation: string, resource: string, revision?: string) {
-    const url = this.buildURL(organisation, resource, revision);
+  public request(organisation: string, resource: string, revision?: string, query?: IQueryObject) {
+    let url = this.buildURL(organisation, resource, revision);
+    const queryString = this.buildQuery(query);
+    url += "?" + queryString;
+
     let headers;
     if ( this.authInfo ) {
       headers = {
@@ -31,16 +45,38 @@ export class USMART {
         if ( error ) {
           deferred.reject( body );
         } else {
-          deferred.resolve(body);
+          deferred.resolve( body );
         }
       },
     );
     return deferred.promise;
   }
 
+  private buildEqualQueries( equals: IQueryEqualPair[] ) {
+    const queries: string[] = [];
+    equals.forEach((equalQuery) => {
+      queries.push(
+        "" + equalQuery.key + "=" + equalQuery.value,
+      );
+    });
+    return queries;
+  }
+
+  private buildQuery( query?: IQueryObject ) {
+    const limit = query && query.limit ? query.limit : 10;
+    const offset = query && query.offset ? query.offset : 0;
+
+    let queries = [];
+    queries.push("limit(" + limit + "," + offset + ")");
+    if ( query && query.equals ) {
+      queries = queries.concat(this.buildEqualQueries(query.equals));
+    }
+    return queries.join("&");
+  }
+
   private buildURL(organisation: string, resource: string, revision: string) {
     return "https://api.usmart.io/org/" + organisation + "/" + resource + "/" +
-      (revision ? revision + "/" : "latest/") + "urql?limit(1)";
+      (revision ? revision + "/" : "latest/") + "urql";
   }
 
 }
