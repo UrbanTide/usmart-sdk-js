@@ -1,10 +1,7 @@
 import request = require("request");
 import typescriptDeferred = require("typescript-deferred");
-
-export interface IAuthInfo {
-  keyId: string;
-  keySecret: string;
-}
+import interfaces = require("./interfaces");
+import USMARTLiveDataClient = require("./usmartLiveDataClient");
 
 export interface IQueryEqualPair {
   key: string;
@@ -18,9 +15,10 @@ export interface IQueryObject {
 }
 
 export class USMART {
-  private authInfo: IAuthInfo;
+  private authInfo: interfaces.IAuthInfo;
+  private client: USMARTLiveDataClient.USMARTLiveDataClient;
 
-  constructor(auth?: IAuthInfo) {
+  constructor(auth?: interfaces.IAuthInfo) {
     this.authInfo = auth;
   }
 
@@ -52,6 +50,19 @@ export class USMART {
     return deferred.promise;
   }
 
+  public subscribe(organisation: string, dataset: string, onMessage: () => void) {
+    this.setupClient(() => {
+      this.client.subscribe(
+        dataset,
+        organisation,
+      ).then(console.log);
+    });
+  }
+
+  private setupClient( callback: () => void ) {
+    this.client = new USMARTLiveDataClient.USMARTLiveDataClient(this.authInfo, true);
+  }
+
   private buildEqualQueries( equals: IQueryEqualPair[] ) {
     const queries: string[] = [];
     equals.forEach((equalQuery) => {
@@ -78,5 +89,9 @@ export class USMART {
     return "https://api.usmart.io/org/" + organisation + "/" + resource + "/" +
       (revision ? revision + "/" : "latest/") + "urql";
   }
+
+  // private buildSubscriptionURL(organisation: string, resource: string) {
+  //   return
+  // }
 
 }
