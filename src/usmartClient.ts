@@ -1,7 +1,7 @@
 
 const Primus = require("Primus");
 import interfaces = require("./interfaces");
-import deferredTS = require("typescript-deferred");
+import Q = require("q");
 
 export class USMARTClient {
   protected client: any;
@@ -9,10 +9,12 @@ export class USMARTClient {
   private socket: any;
   private messageCount: number;
   private messagePromise: any;
+  private messageUpdatePromise: any;
 
   constructor(serviceName: string, auth?: interfaces.IAuthInfo, debug = false) {
-    this.messageCount   = 0;
+    this.messageCount   = 1;
     this.messagePromise = {};
+    this.messageUpdatePromise = {};
     this.authInfo       = auth;
     this.socket         = Primus.createSocket({
       transformer: "engine.io",
@@ -28,16 +30,30 @@ export class USMARTClient {
     });
 
     this.client.on("data", (data: any) => {
-      console.log(data);
+      if ( !!data.status
+        && !!data.status.reference
+        && this.messageUpdatePromise.hasOwnProperty(data.status.reference) ) {
+          this.messageUpdatePromise[data.status.reference].promise.notify(data.status);
+          return;
+      }
+
       if ( typeof data.messageCount !== "undefined" && this.messagePromise.hasOwnProperty(data.messageCount) ) {
-        this.messagePromise[data.messageCount].promise.resolve(data);
+        const listenToProgres = this.messagePromise[data.messageCount].listenToProgress;
+        const isReferenceSet = !!this.messagePromise[data.messageCount].reference;
+
+        if ( listenToProgres && !isReferenceSet ) {
+          this.messagePromise[data.messageCount].reference = data.reference;
+          this.messageUpdatePromise[data.reference] = this.messagePromise[data.messageCount];
+        } else if ( !listenToProgres ) {
+          this.messagePromise[data.messageCount].promise.resolve(data);
+        }
       }
     });
   }
 
   protected actionWithParams(action: string, params: any, listenToProgress = false) {
     const currentMessageCount = this.messageCount++;
-    const deferred = deferredTS.create();
+    const deferred = Q.defer();
 
     params.action = action;
     this.client.write({
@@ -48,7 +64,7 @@ export class USMARTClient {
       action,
       listenToProgress,
       promise: deferred,
-    }
+    };
 
     return deferred.promise;
   }
@@ -57,7 +73,7 @@ export class USMARTClient {
     return this.actionWithParams(
       action,
       params,
-      true
+      true,
     );
 
   }

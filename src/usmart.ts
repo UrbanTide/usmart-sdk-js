@@ -1,5 +1,5 @@
 import request = require("request");
-import typescriptDeferred = require("typescript-deferred");
+import Q = require("q");
 import interfaces = require("./interfaces");
 import USMARTLiveDataClient = require("./usmartLiveDataClient");
 
@@ -15,11 +15,13 @@ export interface IQueryObject {
 }
 
 export class USMART {
+  private debug = false;
   private authInfo: interfaces.IAuthInfo;
   private client: USMARTLiveDataClient.USMARTLiveDataClient;
 
-  constructor(auth?: interfaces.IAuthInfo) {
+  constructor(auth?: interfaces.IAuthInfo, debug = false) {
     this.authInfo = auth;
+    this.debug = debug;
   }
 
   public request(organisation: string, resource: string, revision?: string, query?: IQueryObject) {
@@ -34,7 +36,7 @@ export class USMART {
         "api-key-secret": this.authInfo.keySecret,
       };
     }
-    const deferred = typescriptDeferred.create();
+    const deferred = Q.defer();
     request.get({
         headers,
         url,
@@ -50,23 +52,22 @@ export class USMART {
     return deferred.promise;
   }
 
-  public subscribe(organisation: string, dataset: string, onMessage: () => void) {
-    const deferred = typescriptDeferred.create();
-    this.setupClient(() => {
-      this.client.subscribe(
-        dataset,
-        organisation,
-      ).progress(
-        deferred.notify
-      ).catch(
-        deferred.reject
-      );
-    });
-    return deferred.promise
+  public subscribe(organisation: string, dataset: string) {
+    const deferred = Q.defer();
+    this.setupClient();
+    this.client.subscribe(
+      dataset,
+      organisation,
+    ).catch(
+      deferred.reject,
+    ).progress(
+      deferred.notify,
+    );
+    return deferred.promise;
   }
 
-  private setupClient( callback: () => void ) {
-    this.client = new USMARTLiveDataClient.USMARTLiveDataClient(this.authInfo, true);
+  private setupClient() {
+    this.client = new USMARTLiveDataClient.USMARTLiveDataClient(this.authInfo, this.debug);
   }
 
   private buildEqualQueries( equals: IQueryEqualPair[] ) {

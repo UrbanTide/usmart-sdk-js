@@ -1,7 +1,7 @@
 
 import interfaces = require("./interfaces");
 import USMARTClient = require("./usmartClient");
-import deferredTS = require("typescript-deferred");
+import Q = require("q");
 
 export class USMARTLiveDataClient extends USMARTClient.USMARTClient {
 
@@ -20,6 +20,6 @@ export class USMARTLiveDataClient extends USMARTClient.USMARTClient {
   }
 
   protected getURL(serviceName: string, debug: boolean ) {
-    return debug ? "https://livedata.usmart.io" : "http://localhost:9005";
+    return debug ? "http://localhost:9005" : "https://livedata.usmart.io";
   }
 }
