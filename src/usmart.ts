@@ -51,12 +51,18 @@ export class USMART {
   }
 
   public subscribe(organisation: string, dataset: string, onMessage: () => void) {
+    const deferred = typescriptDeferred.create();
     this.setupClient(() => {
       this.client.subscribe(
         dataset,
         organisation,
-      ).then(console.log);
+      ).progress(
+        deferred.notify
+      ).catch(
+        deferred.reject
+      );
     });
+    return deferred.promise
   }
 
   private setupClient( callback: () => void ) {

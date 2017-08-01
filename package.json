@@ -1,6 +1,6 @@
 {
   "name": "usmart-sdk",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Node SDK for access to USMART datasets",
   "license": "MIT",
   "repository": "",

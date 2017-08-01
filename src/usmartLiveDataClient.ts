@@ -10,7 +10,7 @@ export class USMARTLiveDataClient extends USMARTClient.USMARTClient {
   }
 
   public subscribe(dataset: string, organisation: string) {
-    return this.actionWithParams(
+    return this.actionWithParamsAndListener(
       "liveData:subscribe",
       {
         datasetGUID: dataset,

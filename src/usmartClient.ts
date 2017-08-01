@@ -28,13 +28,14 @@ export class USMARTClient {
     });
 
     this.client.on("data", (data: any) => {
+      console.log(data);
       if ( typeof data.messageCount !== "undefined" && this.messagePromise.hasOwnProperty(data.messageCount) ) {
-        this.messagePromise[data.messageCount].resolve(data);
+        this.messagePromise[data.messageCount].promise.resolve(data);
       }
     });
   }
 
-  protected actionWithParams(action: string, params: any) {
+  protected actionWithParams(action: string, params: any, listenToProgress = false) {
     const currentMessageCount = this.messageCount++;
     const deferred = deferredTS.create();
 
@@ -43,9 +44,22 @@ export class USMARTClient {
       event: "action",
       params,
     });
-    this.messagePromise[currentMessageCount] = deferred;
+    this.messagePromise[currentMessageCount] = {
+      action,
+      listenToProgress,
+      promise: deferred,
+    }
 
     return deferred.promise;
+  }
+
+  protected actionWithParamsAndListener(action: string, params: any) {
+    return this.actionWithParams(
+      action,
+      params,
+      true
+    );
+
   }
 
   protected getURL(serviceName: string, debug: boolean ) {
