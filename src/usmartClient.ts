@@ -1,5 +1,5 @@
 
-const Primus = require("Primus");
+const Primus = require("primus");
 import interfaces = require("./interfaces");
 import Q = require("q");
 
